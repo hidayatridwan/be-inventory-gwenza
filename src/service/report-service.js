@@ -126,4 +126,50 @@ const inventoryStock = async (category) => {
   return result;
 };
 
-export default { stockCard, inventoryStock };
+const dashboard = async () => {
+  const dashboard = await prismaClient.$queryRaw`SELECT 
+    (SELECT 
+            SUM(quantity) AS qty_in
+        FROM
+            transfer
+        WHERE
+            category = 'Good' AND type = 'In') AS qty_in,
+    (SELECT 
+            SUM(quantity) AS qty_out
+        FROM
+            transfer
+        WHERE
+            category = 'Good' AND type = 'Out') AS qty_out,
+    (SELECT 
+            SUM(cost_price) AS cost_price
+        FROM
+            (SELECT 
+                SUM(quantity) * pr.cost_price AS cost_price
+            FROM
+                transfer AS tf
+            JOIN product AS pr ON tf.product_id = pr.product_id
+            WHERE
+                category = 'Good' AND type = 'In'
+            GROUP BY tf.product_id) AS cp) AS cost_price,
+    (SELECT 
+            SUM(selling_price) AS selling_price
+        FROM
+            (SELECT 
+                SUM(quantity) * pr.selling_price AS selling_price
+            FROM
+                transfer AS tf
+            JOIN product AS pr ON tf.product_id = pr.product_id
+            WHERE
+                category = 'Good' AND type = 'In'
+            GROUP BY tf.product_id) AS sp) AS selling_price;`;
+
+  const result = dashboard[0];
+  result.qty_in = parseInt(result.qty_in);
+  result.qty_out = parseInt(result.qty_out);
+  result.qty_margin = result.qty_in - result.qty_out;
+  result.price_margin = result.selling_price - result.cost_price;
+
+  return result;
+};
+
+export default { stockCard, inventoryStock, dashboard };

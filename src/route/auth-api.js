@@ -27,5 +27,6 @@ authRouter.get("/transfers/:productCode", transferController.get);
 
 authRouter.get("/reports/stock-card", reportController.stockCard);
 authRouter.get("/reports/inventory-stock", reportController.inventoryStock);
+authRouter.get("/reports/dashboard", reportController.dashboard);
 
 export { authRouter };

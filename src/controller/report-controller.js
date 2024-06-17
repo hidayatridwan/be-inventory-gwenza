@@ -31,4 +31,16 @@ const inventoryStock = async (req, res, next) => {
   }
 };
 
-export default { stockCard, inventoryStock };
+const dashboard = async (req, res, next) => {
+  try {
+    const result = await reportService.dashboard();
+
+    res.status(200).json({
+      data: result,
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
+export default { stockCard, inventoryStock, dashboard };
