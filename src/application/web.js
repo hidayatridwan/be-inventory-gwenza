@@ -12,7 +12,7 @@ const __dirname = path.resolve();
 web.use(express.static(path.join(__dirname, "public")));
 
 const corsOptions = {
-  origin: [process.env.ORIIGN_URL, "http://localhost:5173"],
+  origin: "*",
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   preflightContinue: false,
   optionsSuccessStatus: 204,
