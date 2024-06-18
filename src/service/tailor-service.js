@@ -28,6 +28,8 @@ const create = async (user, req) => {
     select: {
       tailor_id: true,
       tailor_name: true,
+      phone_number: true,
+      address: true,
       created_at: true,
     },
   });
@@ -50,6 +52,12 @@ const search = async (req) => {
   const result = await prismaClient.tailor.findMany({
     where: {
       AND: filters,
+    },
+    select: {
+      tailor_id: true,
+      tailor_name: true,
+      phone_number: true,
+      address: true,
     },
     take: req.size,
     skip: skip,
@@ -78,6 +86,12 @@ const get = async (tailorId) => {
   const result = await prismaClient.tailor.findUnique({
     where: {
       tailor_id: tailorId,
+    },
+    select: {
+      tailor_id: true,
+      tailor_name: true,
+      phone_number: true,
+      address: true,
     },
   });
 
@@ -121,6 +135,13 @@ const update = async (user, req) => {
     data: newRequest,
     where: {
       tailor_id,
+    },
+    select: {
+      tailor_id: true,
+      tailor_name: true,
+      phone_number: true,
+      address: true,
+      modified_at: true,
     },
   });
 

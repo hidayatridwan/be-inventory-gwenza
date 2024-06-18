@@ -63,6 +63,14 @@ const search = async (req) => {
     where: {
       AND: filters,
     },
+    select: {
+      product_id: true,
+      product_code: true,
+      product_name: true,
+      cost_price: true,
+      selling_price: true,
+      qr_code: true,
+    },
     take: req.size,
     skip: skip,
   });
@@ -90,6 +98,14 @@ const get = async (productId) => {
   const result = await prismaClient.product.findUnique({
     where: {
       product_id: productId,
+    },
+    select: {
+      product_id: true,
+      product_code: true,
+      product_name: true,
+      cost_price: true,
+      selling_price: true,
+      qr_code: true,
     },
   });
 
@@ -121,6 +137,15 @@ const update = async (user, req) => {
     data: newRequest,
     where: {
       product_id,
+    },
+    select: {
+      product_id: true,
+      product_code: true,
+      product_name: true,
+      cost_price: true,
+      selling_price: true,
+      qr_code: true,
+      modified_at: true,
     },
   });
 
