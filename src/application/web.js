@@ -11,7 +11,14 @@ export const web = express();
 const __dirname = path.resolve();
 web.use(express.static(path.join(__dirname, "public")));
 
-web.use(cors());
+const corsOptions = {
+  origin: process.env.ORIIGN_URL,
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
+};
+
+web.use(cors(corsOptions));
 web.use(express.json());
 web.use(publicRouter);
 web.use(authRouter);
