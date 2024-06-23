@@ -1,22 +1,30 @@
-import { prismaClient } from "../application/database.js";
 import qr from "qrcode";
 import path from "path";
 import { qrcodeDir } from "./tools.js";
+import { v4 as uuid } from "uuid";
 
-export const generateProductCode = async () => {
-  const productCodeQuery = await prismaClient.$queryRaw`SELECT
-          CONCAT('P',
-                  LPAD(RIGHT(product_code, 5) + 1, 5, 0)) AS product_code
-      FROM
-          product
-      ORDER BY product_id DESC
-      LIMIT 1
-      FOR UPDATE`;
-  return productCodeQuery[0].product_code;
+export const generateProductCode = async (tx) => {
+  const latestProduct = await tx.product.findFirst({
+    orderBy: {
+      product_id: "desc",
+    },
+    select: {
+      product_code: true,
+    },
+  });
+
+  let newProductCode = "P00001";
+
+  if (latestProduct?.product_code) {
+    const latestCodeNum = parseInt(latestProduct.product_code.slice(1)) + 1;
+    newProductCode = `P${latestCodeNum.toString().padStart(5, "0")}`;
+  }
+
+  return newProductCode;
 };
 
 export const generateQRCode = (productCode) => {
-  const fileName = `${Date.now()}.png`;
+  const fileName = `${uuid().toString()}.png`;
   const filePath = path.join(qrcodeDir, fileName);
 
   qr.toFile(

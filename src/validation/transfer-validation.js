@@ -6,7 +6,7 @@ const createTransferValidation = Joi.object({
   product_id: Joi.number().required(),
   quantity: Joi.number().required(),
   remark: Joi.string().required(),
-  category: Joi.string().valid("Good", "Bad").required(),
+  category: Joi.string().valid("Good", "Bad", "Retur").required(),
   type: Joi.string().valid("In", "Out").required(),
 });
 

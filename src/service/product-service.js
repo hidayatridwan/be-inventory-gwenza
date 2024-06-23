@@ -8,31 +8,37 @@ import {
 import { validate } from "../validation/validation.js";
 import { ResponseError } from "../error/response-error.js";
 import { generateProductCode, generateQRCode } from "../utils/qrcode.js";
+import { constants } from "../utils/constants.js";
 
 const create = async (user, req) => {
   const product = validate(createProductValidation, req);
   product.created_by = user.username;
 
   return prismaClient.$transaction(async (tx) => {
-    const countProduct = await tx.product.count();
-    let productCode;
-    if (countProduct > 0) {
-      productCode = await generateProductCode();
-    } else {
-      productCode = "P00001";
-    }
+    const productCode = await generateProductCode(tx);
     product.product_code = productCode;
+    product.qr_code = generateQRCode(productCode);
 
-    const fileName = generateQRCode(productCode);
-    product.qr_code = fileName;
+    const { models, ...newProduct } = product;
 
-    return await prismaClient.product.create({
-      data: product,
+    return await tx.product.create({
+      data: {
+        ...newProduct,
+        product_model: {
+          create: models,
+        },
+      },
       select: {
         product_id: true,
         product_code: true,
         product_name: true,
         created_at: true,
+        product_model: {
+          select: {
+            model_id: true,
+            image: true,
+          },
+        },
       },
     });
   });
@@ -106,6 +112,13 @@ const get = async (productId) => {
       cost_price: true,
       selling_price: true,
       qr_code: true,
+      tailor_id: true,
+      product_model: {
+        select: {
+          model_id: true,
+          image: true,
+        },
+      },
     },
   });
 
@@ -113,7 +126,13 @@ const get = async (productId) => {
     throw new ResponseError(404, constants.NOT_FOUND);
   }
 
-  return result;
+  const transformedResult = {
+    ...result,
+    models: result.product_model,
+  };
+  delete transformedResult.product_model;
+
+  return transformedResult;
 };
 
 const update = async (user, req) => {

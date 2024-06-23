@@ -3,14 +3,18 @@ import { compressImage, deleteImage } from "../utils/tools.js";
 
 const create = async (req, res, next) => {
   try {
-    if (req.file) {
-      const fileName = req.file.filename;
-      await compressImage(fileName);
-      req.body.image = fileName;
+    for (const image of req.files) {
+      await compressImage(image.filename);
     }
 
-    const { image_name, ...reqBody } = req.body;
-    const result = await productService.create(req.user, reqBody);
+    const models = req.body.model_id.map((id, index) => ({
+      model_id: id,
+      image: req.files[index].filename,
+    }));
+    req.body.models = models;
+
+    const { model_id, ...newBody } = req.body;
+    const result = await productService.create(req.user, newBody);
 
     res.status(200).json({ data: result });
   } catch (err) {

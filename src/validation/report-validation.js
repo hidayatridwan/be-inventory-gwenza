@@ -6,7 +6,7 @@ const stockCardReportValidation = Joi.object({
 });
 
 const inventoryStockProductValidation = Joi.string()
-  .valid("Good", "Bad")
+  .valid("Good", "Bad", "Retur")
   .required();
 
 export { stockCardReportValidation, inventoryStockProductValidation };

@@ -1,6 +1,7 @@
 import express from "express";
 import { authMiddleware } from "../middleware/auth-middleware.js";
 import tailorController from "../controller/tailor-controller.js";
+import modelController from "../controller/model-controller.js";
 import productController from "../controller/product-controller.js";
 import transferController from "../controller/transfer-controller.js";
 import reportController from "../controller/report-controller.js";
@@ -15,6 +16,12 @@ authRouter.get("/tailors", tailorController.search);
 authRouter.get("/tailors/:tailorId", tailorController.get);
 authRouter.put("/tailors/:tailorId", tailorController.update);
 authRouter.delete("/tailors/:tailorId", tailorController.remove);
+
+authRouter.post("/models", modelController.create);
+authRouter.get("/models", modelController.search);
+authRouter.get("/models/:modelId", modelController.get);
+authRouter.put("/models/:modelId", modelController.update);
+authRouter.delete("/models/:modelId", modelController.remove);
 
 authRouter.post("/products", upload, productController.create);
 authRouter.get("/products", productController.search);

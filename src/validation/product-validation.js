@@ -5,7 +5,15 @@ const createProductValidation = Joi.object({
   cost_price: Joi.number().required(),
   selling_price: Joi.number().required(),
   tailor_id: Joi.number().required(),
-  image: Joi.string().max(100).required(),
+  models: Joi.array()
+    .min(1)
+    .items(
+      Joi.object({
+        model_id: Joi.number().required(),
+        image: Joi.string().max(100).required(),
+      })
+    )
+    .required(),
 });
 
 const searchProductValidation = Joi.object({
@@ -23,8 +31,16 @@ const updateProductValidation = Joi.object({
   cost_price: Joi.number().required(),
   selling_price: Joi.number().required(),
   tailor_id: Joi.number().required(),
-  image: Joi.string().max(100).optional(),
-  image_name: Joi.string().max(100).optional(),
+  models: Joi.array()
+    .min(1)
+    .items(
+      Joi.object({
+        product_id: Joi.number().required(),
+        model_id: Joi.number().required(),
+        image: Joi.string().max(100).required(),
+      })
+    )
+    .required(),
 });
 
 export {
