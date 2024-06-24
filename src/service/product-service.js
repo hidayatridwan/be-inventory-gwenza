@@ -9,9 +9,11 @@ import { validate } from "../validation/validation.js";
 import { ResponseError } from "../error/response-error.js";
 import { generateProductCode, generateQRCode } from "../utils/qrcode.js";
 import { constants } from "../utils/constants.js";
+import { getDate } from "../utils/tools.js";
 
 const create = async (user, req) => {
   const product = validate(createProductValidation, req);
+  product.created_at = getDate();
   product.created_by = user.username;
 
   return prismaClient.$transaction(async (tx) => {
@@ -137,8 +139,8 @@ const get = async (productId) => {
 
 const update = async (user, req) => {
   req = validate(updateProductValidation, req);
+  req.modified_at = getDate();
   req.modified_by = user.username;
-  req.modified_at = new Date().toISOString();
 
   const { product_id, ...newRequest } = req;
 

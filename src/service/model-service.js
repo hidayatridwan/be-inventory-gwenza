@@ -8,9 +8,11 @@ import {
   updateModelValidation,
 } from "../validation/model-validation.js";
 import { validate } from "../validation/validation.js";
+import { getDate } from "../utils/tools.js";
 
 const create = async (user, req) => {
   const model = validate(createModelValidation, req);
+  model.created_at = getDate();
   model.created_by = user.username;
 
   const countModel = await prismaClient.model.count({
@@ -98,6 +100,7 @@ const get = async (modelId) => {
 
 const update = async (user, req) => {
   req = validate(updateModelValidation, req);
+  req.modified_at = getDate();
   req.modified_by = user.username;
 
   const { model_id, ...newRequest } = req;

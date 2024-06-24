@@ -2,6 +2,7 @@ import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import sharp from "sharp";
 import fs from "fs";
+import moment from "moment-timezone";
 
 sharp.cache(false);
 
@@ -28,4 +29,11 @@ export const deleteImage = (fileName) => {
   const pathImage = path.join(productDir, fileName);
 
   fs.unlinkSync(pathImage);
+};
+
+export const getDate = () => {
+  const date =
+    moment().format("YYYY-MM-DD HH:mm:ss").replace("T", " ") + ".000Z";
+
+  return new Date(date);
 };

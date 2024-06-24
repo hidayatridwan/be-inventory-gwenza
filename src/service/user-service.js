@@ -9,9 +9,11 @@ import { validate } from "../validation/validation.js";
 import bcrypt from "bcrypt";
 import Jwt from "jsonwebtoken";
 import { v4 as uuid } from "uuid";
+import { getDate } from "../utils/tools.js";
 
 const register = async (req) => {
   const user = validate(registerUserValidation, req);
+  user.created_at = getDate();
 
   const countUser = await prismaClient.user.count({
     where: {
