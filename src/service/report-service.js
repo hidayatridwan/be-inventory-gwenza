@@ -2,17 +2,17 @@ import { prismaClient } from "../application/database.js";
 import { ResponseError } from "../error/response-error.js";
 import { constants } from "../utils/constants.js";
 import {
-  inventoryStockProductValidation,
+  inventoryStockReportValidation,
   stockCardReportValidation,
 } from "../validation/report-validation.js";
 import { validate } from "../validation/validation.js";
 
-const stockCard = async (req) => {
-  req = validate(stockCardReportValidation, req);
+const stockCard = async (productCode) => {
+  productCode = validate(stockCardReportValidation, productCode);
 
   const product = await prismaClient.product.findUnique({
     where: {
-      product_code: req.product_code,
+      product_code: productCode,
     },
     select: {
       product_id: true,
@@ -32,13 +32,18 @@ const stockCard = async (req) => {
   // Fetch 'In' transfers
   const inTransfers = await prismaClient.transfer.findMany({
     where: {
-      category: req.category,
       type: "In",
       product_id: productId,
     },
     select: {
       transfer_id: true,
       transfer_date: true,
+      category: true,
+      model: {
+        select: {
+          model_name: true,
+        },
+      },
       remark: true,
       quantity: true,
     },
@@ -47,23 +52,30 @@ const stockCard = async (req) => {
   // Fetch 'Out' transfers
   const outTransfers = await prismaClient.transfer.findMany({
     where: {
-      category: req.category,
       type: "Out",
       product_id: productId,
     },
     select: {
       transfer_id: true,
       transfer_date: true,
+      category: true,
+      model: {
+        select: {
+          model_name: true,
+        },
+      },
       remark: true,
       quantity: true,
     },
   });
 
   // Combine and format the results
-  const combinedResults = [
+  const combinedResultsTransfers = [
     ...inTransfers.map((transfer) => ({
       transfer_id: transfer.transfer_id,
       transfer_date: transfer.transfer_date,
+      category: transfer.category,
+      model: transfer.model.model_name,
       remark: transfer.remark,
       qty_in: transfer.quantity,
       qty_out: 0,
@@ -71,6 +83,8 @@ const stockCard = async (req) => {
     ...outTransfers.map((transfer) => ({
       transfer_id: transfer.transfer_id,
       transfer_date: transfer.transfer_date,
+      category: transfer.category,
+      model: transfer.model.model_name,
       remark: transfer.remark,
       qty_in: 0,
       qty_out: transfer.quantity,
@@ -78,68 +92,118 @@ const stockCard = async (req) => {
   ];
 
   // Sort by transfer_id
-  combinedResults.sort((a, b) => a.transfer_id - b.transfer_id);
+  combinedResultsTransfers.sort((a, b) => a.transfer_id - b.transfer_id);
 
-  return { info: product, stock: combinedResults };
-};
-
-const inventoryStock = async (category) => {
-  category = validate(inventoryStockProductValidation, category);
-
-  const products = await prismaClient.product.findMany({
-    include: {
-      transfer: true,
+  // Calculate summary
+  const summaryStock = await prismaClient.inventory.findMany({
+    where: {
+      product_id: productId,
+    },
+    select: {
+      category: true,
+      model: {
+        select: {
+          model_name: true,
+        },
+      },
+      quantity: true,
     },
   });
 
-  const result = products.map((product) => {
-    const qty_in = product.transfer
-      .filter(
-        (transfer) => transfer.type === "In" && transfer.category === category
-      )
-      .reduce((sum, transfer) => sum + transfer.quantity, 0);
+  const summaryStockFormatted = summaryStock
+    .map((stock) => ({
+      category: stock.category,
+      model: stock.model.model_name,
+      quantity: stock.quantity,
+    }))
+    .sort((a, b) => a.model.localeCompare(b.model));
 
-    const qty_out = product.transfer
-      .filter(
-        (transfer) => transfer.type === "Out" && transfer.category === category
-      )
-      .reduce((sum, transfer) => sum + transfer.quantity, 0);
+  return {
+    info: product,
+    transfers: combinedResultsTransfers,
+    summary: summaryStockFormatted,
+  };
+};
 
-    const balance = qty_in - qty_out;
-    const cost_price = balance * product.cost_price;
-    const selling_price = balance * product.selling_price;
-    const margin = selling_price - cost_price;
+const inventoryStock = async (req) => {
+  req = validate(inventoryStockReportValidation, req);
+  const category = req.category;
+  const dateStart = req.date_start;
+  const dateEnd = req.date_end;
 
-    return {
-      product_id: product.product_id,
-      product_code: product.product_code,
-      product_name: product.product_name,
-      qty_in,
-      qty_out,
-      balance,
-      cost_price,
-      selling_price,
-      margin,
-    };
-  });
+  const stocks = await prismaClient.$queryRaw`SELECT 
+      pr.product_code,
+      pr.product_name,
+      pr.cost_price,
+      pr.selling_price,
+      tf.category,
+      md.model_name,
+      SUM(IF(tf.type = 'In', tf.quantity, 0)) AS qty_in,
+      SUM(IF(tf.type = 'Out', tf.quantity, 0)) AS qty_out,
+      IFNULL(SUM(IF(tf.type = 'In',
+          tf.quantity,
+          tf.quantity * - 1)),
+      0) AS balance
+  FROM
+      product AS pr
+          LEFT JOIN
+      (SELECT 
+          *
+      FROM
+          transfer
+      WHERE
+          IF(${category} = 'All', 1 = 1, category = ${category})
+              AND DATE(transfer_date) BETWEEN ${dateStart} AND ${dateEnd}) AS tf ON pr.product_id = tf.product_id
+          LEFT JOIN
+      model AS md ON tf.model_id = md.model_id
+  GROUP BY pr.product_id , tf.category , tf.model_id`;
+
+  // Calculate balance price
+  const result = stocks.map((stock) => ({
+    product_code: stock.product_code,
+    product_name: stock.product_name,
+    category: stock.category,
+    model_name: stock.model_name,
+    qty_in: parseInt(stock.qty_in),
+    qty_out: parseInt(stock.qty_out),
+    qty_balance: parseInt(stock.balance),
+    cost_price: parseInt(stock.balance) * parseInt(stock.cost_price),
+    selling_price: parseInt(stock.balance) * parseInt(stock.selling_price),
+    balance_price:
+      parseInt(stock.balance) * parseInt(stock.selling_price) -
+      parseInt(stock.balance) * parseInt(stock.cost_price),
+  }));
 
   return result;
 };
 
-const dashboard = async () => {
-  const dashboard = await prismaClient.$queryRaw`SELECT 
+const dashboard = async (req) => {
+  req = validate(inventoryStockReportValidation, req);
+  const category = req.category;
+  const dateStart = req.date_start;
+  const dateEnd = req.date_end;
+
+  const summaries = await prismaClient.$queryRaw`SELECT 
     (SELECT 
             SUM(quantity) AS qty_in
         FROM
             transfer
         WHERE
-            category = 'Good' AND type = 'In') AS qty_in,
+            IF(${category} = 'All',
+                1 = 1,
+                category = ${category})
+                AND type = 'In'
+                AND DATE(transfer_date) BETWEEN ${dateStart} AND ${dateEnd}) AS qty_in,
     (SELECT 
             SUM(quantity) AS qty_out
         FROM
             transfer
         WHERE
-            category = 'Good' AND type = 'Out') AS qty_out,
+            IF(${category} = 'All',
+                1 = 1,
+                category = ${category})
+                AND type = 'Out'
+                AND DATE(transfer_date) BETWEEN ${dateStart} AND ${dateEnd}) AS qty_out,
     (SELECT 
             SUM(cost_price) AS cost_price
         FROM
@@ -149,7 +213,9 @@ const dashboard = async () => {
                 transfer AS tf
             JOIN product AS pr ON tf.product_id = pr.product_id
             WHERE
-                category = 'Good' AND type = 'In'
+                IF(${category} = 'All', 1 = 1, category = ${category})
+                    AND type = 'In'
+                    AND DATE(transfer_date) BETWEEN ${dateStart} AND ${dateEnd}
             GROUP BY tf.product_id) AS cp) AS cost_price,
     (SELECT 
             SUM(selling_price) AS selling_price
@@ -160,16 +226,23 @@ const dashboard = async () => {
                 transfer AS tf
             JOIN product AS pr ON tf.product_id = pr.product_id
             WHERE
-                category = 'Good' AND type = 'In'
+                IF(${category} = 'All', 1 = 1, category = ${category})
+                    AND type = 'In'
+                    AND DATE(transfer_date) BETWEEN ${dateStart} AND ${dateEnd}
             GROUP BY tf.product_id) AS sp) AS selling_price;`;
 
-  const result = dashboard[0];
-  result.qty_in = parseInt(result.qty_in);
-  result.qty_out = parseInt(result.qty_out);
-  result.qty_margin = result.qty_in - result.qty_out;
-  result.price_margin = result.selling_price - result.cost_price;
+  // Calculate balance price
+  const result = summaries.map((summary) => ({
+    qty_in: parseInt(summary.qty_in),
+    qty_out: parseInt(summary.qty_out),
+    qty_balance: parseInt(summary.qty_in) - parseInt(summary.qty_out),
+    cost_price: parseInt(summary.cost_price),
+    selling_price: parseInt(summary.selling_price),
+    balance_price:
+      parseInt(summary.selling_price) - parseInt(summary.cost_price),
+  }));
 
-  return result;
+  return result[0];
 };
 
 export default { stockCard, inventoryStock, dashboard };

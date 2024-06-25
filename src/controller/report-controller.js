@@ -2,12 +2,9 @@ import reportService from "../service/report-service.js";
 
 const stockCard = async (req, res, next) => {
   try {
-    const request = {
-      category: req.query.category,
-      product_code: req.query.product_code,
-    };
+    const productCode = req.query.product_code;
 
-    const result = await reportService.stockCard(request);
+    const result = await reportService.stockCard(productCode);
 
     res.status(200).json({
       data: result,
@@ -19,9 +16,13 @@ const stockCard = async (req, res, next) => {
 
 const inventoryStock = async (req, res, next) => {
   try {
-    const category = req.query.category;
+    const request = {
+      category: req.query.category,
+      date_start: req.query.date_start,
+      date_end: req.query.date_end,
+    };
 
-    const result = await reportService.inventoryStock(category);
+    const result = await reportService.inventoryStock(request);
 
     res.status(200).json({
       data: result,
@@ -33,7 +34,13 @@ const inventoryStock = async (req, res, next) => {
 
 const dashboard = async (req, res, next) => {
   try {
-    const result = await reportService.dashboard();
+    const request = {
+      category: req.query.category,
+      date_start: req.query.date_start,
+      date_end: req.query.date_end,
+    };
+
+    const result = await reportService.dashboard(request);
 
     res.status(200).json({
       data: result,

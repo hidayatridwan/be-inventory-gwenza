@@ -1,12 +1,11 @@
 import Joi from "joi";
 
-const stockCardReportValidation = Joi.object({
-  category: Joi.string().valid("Good", "Bad").required(),
-  product_code: Joi.string().min(0).max(20).optional(),
+const stockCardReportValidation = Joi.string().min(0).max(20).required();
+
+const inventoryStockReportValidation = Joi.object({
+  category: Joi.string().valid("All", "Good", "Bad", "Retur").required(),
+  date_start: Joi.date().required(),
+  date_end: Joi.date().required(),
 });
 
-const inventoryStockProductValidation = Joi.string()
-  .valid("Good", "Bad", "Retur")
-  .required();
-
-export { stockCardReportValidation, inventoryStockProductValidation };
+export { stockCardReportValidation, inventoryStockReportValidation };
