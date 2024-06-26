@@ -8,11 +8,9 @@ import {
   updateTailorValidation,
 } from "../validation/tailor-validation.js";
 import { validate } from "../validation/validation.js";
-import { getDate } from "../utils/tools.js";
 
 const create = async (user, req) => {
   const tailor = validate(createTailorValidation, req);
-  tailor.created_at = getDate();
   tailor.created_by = user.username;
 
   const countTailor = await prismaClient.tailor.count({
@@ -106,7 +104,6 @@ const get = async (tailorId) => {
 
 const update = async (user, req) => {
   req = validate(updateTailorValidation, req);
-  req.modified_at = getDate();
   req.modified_by = user.username;
 
   const { tailor_id, ...newRequest } = req;

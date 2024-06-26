@@ -18,8 +18,7 @@ const inventoryStock = async (req, res, next) => {
   try {
     const request = {
       category: req.query.category,
-      date_start: req.query.date_start,
-      date_end: req.query.date_end,
+      date_periode: req.query.date_periode,
     };
 
     const result = await reportService.inventoryStock(request);
@@ -36,8 +35,7 @@ const dashboard = async (req, res, next) => {
   try {
     const request = {
       category: req.query.category,
-      date_start: req.query.date_start,
-      date_end: req.query.date_end,
+      date_periode: req.query.date_periode,
     };
 
     const result = await reportService.dashboard(request);

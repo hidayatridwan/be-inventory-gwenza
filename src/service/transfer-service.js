@@ -6,7 +6,6 @@ import {
   transactionTransferValidation,
 } from "../validation/transfer-validation.js";
 import { validate } from "../validation/validation.js";
-import { getDate } from "../utils/tools.js";
 
 const get = async (productCode) => {
   productCode = validate(transactionTransferValidation, productCode);
@@ -15,10 +14,31 @@ const get = async (productCode) => {
     where: {
       product_code: productCode,
     },
-    include: {
+    select: {
+      product_id: true,
+      product_code: true,
+      product_name: true,
+      cost_price: true,
+      selling_price: true,
       tailor: {
         select: {
           tailor_name: true,
+        },
+      },
+      product_model: {
+        select: {
+          image: true,
+          model: {
+            select: {
+              model_name: true,
+              inventory: {
+                select: {
+                  category: true,
+                  quantity: true,
+                },
+              },
+            },
+          },
         },
       },
     },
@@ -28,24 +48,30 @@ const get = async (productCode) => {
     throw new ResponseError(404, constants.NOT_FOUND);
   }
 
-  const stockProduct = await prismaClient.$queryRaw`SELECT 
-      IFNULL(SUM(IF(type = 'In',
-                  quantity,
-                  quantity * - 1)),
-              0) AS stock
-  FROM
-      transfer
-  WHERE
-      category = 'Good' AND product_id = ${result.product_id};`;
+  // Reformatting the result
+  const formattedResult = {
+    product_id: result.product_id,
+    product_code: result.product_code,
+    product_name: result.product_name,
+    cost_price: result.cost_price,
+    selling_price: result.selling_price,
+    qr_code: result.qr_code,
+    tailor_name: result.tailor.tailor_name,
+    model: result.product_model.map((pm) => ({
+      image: pm.image,
+      model_name: pm.model.model_name,
+      inventory: pm.model.inventory.map((inv) => ({
+        category: inv.category,
+        quantity: inv.quantity,
+      })),
+    })),
+  };
 
-  result.stock = stockProduct[0].stock;
-
-  return result;
+  return formattedResult;
 };
 
 const create = async (user, req) => {
   const transfer = validate(createTransferValidation, req);
-  transfer.transfer_date = transfer.created_at = getDate();
   transfer.created_by = user.username;
 
   let result;
@@ -73,7 +99,6 @@ const create = async (user, req) => {
         type: true,
         quantity: true,
         remark: true,
-        created_at: true,
       },
     });
 
@@ -115,6 +140,7 @@ const create = async (user, req) => {
           model_id: result.model.model_id,
           category: result.category,
           quantity: result.quantity,
+          created_by: user.username,
         },
       });
     }

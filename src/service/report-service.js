@@ -128,8 +128,7 @@ const stockCard = async (productCode) => {
 const inventoryStock = async (req) => {
   req = validate(inventoryStockReportValidation, req);
   const category = req.category;
-  const dateStart = req.date_start;
-  const dateEnd = req.date_end;
+  const datePeriode = req.date_periode;
 
   const stocks = await prismaClient.$queryRaw`SELECT 
       pr.product_code,
@@ -153,7 +152,7 @@ const inventoryStock = async (req) => {
           transfer
       WHERE
           IF(${category} = 'All', 1 = 1, category = ${category})
-              AND DATE(transfer_date) BETWEEN ${dateStart} AND ${dateEnd}) AS tf ON pr.product_id = tf.product_id
+              AND DATE(transfer_date) <= ${datePeriode}) AS tf ON pr.product_id = tf.product_id
           LEFT JOIN
       model AS md ON tf.model_id = md.model_id
   GROUP BY pr.product_id , tf.category , tf.model_id`;
@@ -180,8 +179,7 @@ const inventoryStock = async (req) => {
 const dashboard = async (req) => {
   req = validate(inventoryStockReportValidation, req);
   const category = req.category;
-  const dateStart = req.date_start;
-  const dateEnd = req.date_end;
+  const datePeriode = req.date_periode;
 
   const summaries = await prismaClient.$queryRaw`SELECT 
     (SELECT 
@@ -193,7 +191,7 @@ const dashboard = async (req) => {
                 1 = 1,
                 category = ${category})
                 AND type = 'In'
-                AND DATE(transfer_date) BETWEEN ${dateStart} AND ${dateEnd}) AS qty_in,
+                AND DATE(transfer_date) <= ${datePeriode}) AS qty_in,
     (SELECT 
             SUM(quantity) AS qty_out
         FROM
@@ -203,7 +201,7 @@ const dashboard = async (req) => {
                 1 = 1,
                 category = ${category})
                 AND type = 'Out'
-                AND DATE(transfer_date) BETWEEN ${dateStart} AND ${dateEnd}) AS qty_out,
+                AND DATE(transfer_date) <= ${datePeriode}) AS qty_out,
     (SELECT 
             SUM(cost_price) AS cost_price
         FROM
@@ -215,7 +213,7 @@ const dashboard = async (req) => {
             WHERE
                 IF(${category} = 'All', 1 = 1, category = ${category})
                     AND type = 'In'
-                    AND DATE(transfer_date) BETWEEN ${dateStart} AND ${dateEnd}
+                    AND DATE(transfer_date) <= ${datePeriode}
             GROUP BY tf.product_id) AS cp) AS cost_price,
     (SELECT 
             SUM(selling_price) AS selling_price
@@ -228,7 +226,7 @@ const dashboard = async (req) => {
             WHERE
                 IF(${category} = 'All', 1 = 1, category = ${category})
                     AND type = 'In'
-                    AND DATE(transfer_date) BETWEEN ${dateStart} AND ${dateEnd}
+                    AND DATE(transfer_date) <= ${datePeriode}
             GROUP BY tf.product_id) AS sp) AS selling_price;`;
 
   // Calculate balance price
