@@ -27,6 +27,7 @@ const get = async (productCode) => {
       },
       product_model: {
         select: {
+          model_id: true,
           image: true,
           model: {
             select: {
@@ -58,8 +59,9 @@ const get = async (productCode) => {
     qr_code: result.qr_code,
     tailor_name: result.tailor.tailor_name,
     model: result.product_model.map((pm) => ({
-      image: pm.image,
+      model_id: pm.model_id,
       model_name: pm.model.model_name,
+      image: pm.image,
       inventory: pm.model.inventory.map((inv) => ({
         category: inv.category,
         quantity: inv.quantity,
