@@ -55,17 +55,18 @@ const get = async (req, res, next) => {
 
 const update = async (req, res, next) => {
   try {
-    if (req.file) {
-      deleteImage(req.body.image_name);
+    // if (req.file) {
+    //   deleteImage(req.body.image_name);
 
-      const fileName = req.file.filename;
-      await compressImage(fileName);
-      req.body.image = fileName;
-    }
+    //   const fileName = req.file.filename;
+    //   await compressImage(fileName);
+    //   req.body.image = fileName;
+    // }
 
     req.body.product_id = req.params.productId;
 
-    const { image_name, ...reqBody } = req.body;
+    const { model_id, image_name, ...reqBody } = req.body;
+    console.log(reqBody);
     const result = await productService.update(req.user, reqBody);
 
     res.status(200).json({ data: result });
