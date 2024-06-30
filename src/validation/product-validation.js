@@ -37,7 +37,7 @@ const updateProductValidation = Joi.object({
       Joi.object({
         product_id: Joi.number().required(),
         model_id: Joi.number().required(),
-        image: Joi.string().max(100).required(),
+        image: Joi.string().max(100).optional(),
       })
     )
     .required(),

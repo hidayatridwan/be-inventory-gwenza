@@ -56,7 +56,9 @@ const get = async (req, res, next) => {
 const update = async (req, res, next) => {
   try {
     for (const image of req.files) {
-      await compressImage(image.filename);
+      if (image.filename) {
+        await compressImage(image.filename);
+      }
     }
 
     const productId = req.params.productId;
@@ -64,11 +66,11 @@ const update = async (req, res, next) => {
     const models = req.body.model_id.map((id, index) => ({
       product_id: productId,
       model_id: id,
-      image: req.files[index].filename,
+      image: req.files[index]?.filename,
     }));
     req.body.models = models;
 
-    const { model_id, ...newBody } = req.body;
+    const { model_id, image, ...newBody } = req.body;
     const result = await productService.update(req.user, newBody);
 
     res.status(200).json({ data: result });

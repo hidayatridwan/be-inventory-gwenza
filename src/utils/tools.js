@@ -20,12 +20,16 @@ export const compressImage = async (fileName) => {
   const fromPath = path.join(tempDir, fileName);
   const toPath = path.join(productDir, fileName);
 
-  await sharp(fromPath).resize({ width: 400 }).toFile(toPath);
-  fs.unlinkSync(fromPath);
+  if (fs.existsSync(fromPath)) {
+    await sharp(fromPath).resize({ width: 400 }).toFile(toPath);
+    fs.unlinkSync(fromPath);
+  }
 };
 
 export const deleteImage = (fileName) => {
   const pathImage = path.join(productDir, fileName);
 
-  fs.unlinkSync(pathImage);
+  if (fs.existsSync(pathImage)) {
+    fs.unlinkSync(pathImage);
+  }
 };

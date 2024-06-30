@@ -159,8 +159,18 @@ const update = async (user, req) => {
       },
     });
 
-    modelImages.forEach((model) => {
-      deleteImage(model.image);
+    const mergeImages = modelImages.map((model, index) => {
+      return {
+        model_id: model.model_id,
+        image: model.image,
+        new_image: models[index].image,
+      };
+    });
+
+    mergeImages.forEach((model) => {
+      if (model.new_image) {
+        deleteImage(model.image);
+      }
     });
 
     await tx.productModel.deleteMany({
@@ -169,7 +179,15 @@ const update = async (user, req) => {
       },
     });
 
-    const modelPromises = models.map(async (model) => {
+    const newModels = models.map((model, index) => {
+      return {
+        product_id: model.product_id,
+        model_id: model.model_id,
+        image: model.image ?? modelImages[index].image,
+      };
+    });
+
+    const modelPromises = newModels.map(async (model) => {
       await tx.productModel.create({
         data: {
           ...model,
