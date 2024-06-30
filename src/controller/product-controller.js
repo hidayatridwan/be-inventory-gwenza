@@ -1,5 +1,5 @@
 import productService from "../service/product-service.js";
-import { compressImage, deleteImage } from "../utils/tools.js";
+import { compressImage } from "../utils/tools.js";
 
 const create = async (req, res, next) => {
   try {
@@ -55,19 +55,21 @@ const get = async (req, res, next) => {
 
 const update = async (req, res, next) => {
   try {
-    // if (req.file) {
-    //   deleteImage(req.body.image_name);
+    for (const image of req.files) {
+      await compressImage(image.filename);
+    }
 
-    //   const fileName = req.file.filename;
-    //   await compressImage(fileName);
-    //   req.body.image = fileName;
-    // }
+    const productId = req.params.productId;
+    req.body.product_id = productId;
+    const models = req.body.model_id.map((id, index) => ({
+      product_id: productId,
+      model_id: id,
+      image: req.files[index].filename,
+    }));
+    req.body.models = models;
 
-    req.body.product_id = req.params.productId;
-
-    const { model_id, image_name, ...reqBody } = req.body;
-    console.log(reqBody);
-    const result = await productService.update(req.user, reqBody);
+    const { model_id, ...newBody } = req.body;
+    const result = await productService.update(req.user, newBody);
 
     res.status(200).json({ data: result });
   } catch (e) {

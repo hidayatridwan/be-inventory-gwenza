@@ -9,6 +9,7 @@ import { validate } from "../validation/validation.js";
 import { ResponseError } from "../error/response-error.js";
 import { generateProductCode, generateQRCode } from "../utils/qrcode.js";
 import { constants } from "../utils/constants.js";
+import { deleteImage } from "../utils/tools.js";
 
 const create = async (user, req) => {
   const product = validate(createProductValidation, req);
@@ -32,13 +33,13 @@ const create = async (user, req) => {
         product_id: true,
         product_code: true,
         product_name: true,
-        created_at: true,
         product_model: {
           select: {
             model_id: true,
             image: true,
           },
         },
+        created_at: true,
       },
     });
   });
@@ -139,35 +140,68 @@ const update = async (user, req) => {
   req = validate(updateProductValidation, req);
   req.modified_by = user.username;
 
-  const { product_id, ...newRequest } = req;
+  const { product_id, models, ...newRequest } = req;
 
-  const countProduct = await prismaClient.product.count({
-    where: {
-      product_id,
-    },
+  return prismaClient.$transaction(async (tx) => {
+    const countProduct = await tx.product.count({
+      where: {
+        product_id,
+      },
+    });
+
+    if (countProduct === 0) {
+      throw new ResponseError(404, constants.NOT_FOUND);
+    }
+
+    const modelImages = await tx.productModel.findMany({
+      where: {
+        product_id,
+      },
+    });
+
+    modelImages.forEach((model) => {
+      deleteImage(model.image);
+    });
+
+    await tx.productModel.deleteMany({
+      where: {
+        product_id,
+      },
+    });
+
+    const modelPromises = models.map(async (model) => {
+      await tx.productModel.create({
+        data: {
+          ...model,
+          product_id,
+        },
+      });
+    });
+
+    await Promise.all(modelPromises);
+
+    return await tx.product.update({
+      data: newRequest,
+      where: {
+        product_id,
+      },
+      select: {
+        product_id: true,
+        product_code: true,
+        product_name: true,
+        cost_price: true,
+        selling_price: true,
+        qr_code: true,
+        product_model: {
+          select: {
+            model_id: true,
+            image: true,
+          },
+        },
+        modified_at: true,
+      },
+    });
   });
-
-  if (countProduct === 0) {
-    throw new ResponseError(404, constants.NOT_FOUND);
-  }
-
-  const result = await prismaClient.product.update({
-    data: newRequest,
-    where: {
-      product_id,
-    },
-    select: {
-      product_id: true,
-      product_code: true,
-      product_name: true,
-      cost_price: true,
-      selling_price: true,
-      qr_code: true,
-      modified_at: true,
-    },
-  });
-
-  return result;
 };
 
 const remove = async (productId) => {
