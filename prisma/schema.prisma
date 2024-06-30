@@ -117,8 +117,8 @@ model Transfer {
 
 model Inventory {
   product_id Int      @db.Int
-  model_id   Int      @db.Int
   category   Category
+  model_id   Int      @db.Int
   quantity   Int      @db.Int
   created_at DateTime @default(now())
   created_by String   @db.VarChar(20)

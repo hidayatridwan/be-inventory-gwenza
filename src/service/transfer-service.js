@@ -32,12 +32,6 @@ const get = async (productCode) => {
           model: {
             select: {
               model_name: true,
-              inventory: {
-                select: {
-                  category: true,
-                  quantity: true,
-                },
-              },
             },
           },
         },
@@ -49,6 +43,24 @@ const get = async (productCode) => {
     throw new ResponseError(404, constants.NOT_FOUND);
   }
 
+  const inventoryPromises = result.product_model.map(async (pm) => {
+    return await prismaClient.inventory.findMany({
+      where: {
+        product_id: result.product_id,
+        model_id: pm.model_id,
+      },
+      select: {
+        product_id: true,
+        category: true,
+        model_id: true,
+        quantity: true,
+      },
+    });
+  });
+
+  const nestedArray = await Promise.all(inventoryPromises);
+  const inventory = nestedArray.flat();
+
   // Reformatting the result
   const formattedResult = {
     product_id: result.product_id,
@@ -56,16 +68,17 @@ const get = async (productCode) => {
     product_name: result.product_name,
     cost_price: result.cost_price,
     selling_price: result.selling_price,
-    qr_code: result.qr_code,
     tailor_name: result.tailor.tailor_name,
     model: result.product_model.map((pm) => ({
       model_id: pm.model_id,
       model_name: pm.model.model_name,
       image: pm.image,
-      inventory: pm.model.inventory.map((inv) => ({
-        category: inv.category,
-        quantity: inv.quantity,
-      })),
+      inventory: inventory
+        .filter((i) => i.model_id === pm.model_id)
+        .map((i) => ({
+          category: i.category,
+          quantity: i.quantity,
+        })),
     })),
   };
 
@@ -123,6 +136,11 @@ const create = async (user, req) => {
           ? inventory.quantity + result.quantity
           : inventory.quantity - result.quantity;
 
+      // If new quantity is less than 0, throw an error to trigger rollback
+      if (newQuantity < 0) {
+        throw new ResponseError(400, "Quantity cannot be less than 0");
+      }
+
       await tx.inventory.update({
         where: {
           product_id_model_id_category: {
@@ -136,6 +154,11 @@ const create = async (user, req) => {
         },
       });
     } else {
+      // If inventory is not found and type is "Out", throw an error to trigger rollback
+      if (result.type === "Out") {
+        throw new ResponseError(400, 'Type is "Out" but inventory not found');
+      }
+
       await tx.inventory.create({
         data: {
           product_id: result.product.product_id,
