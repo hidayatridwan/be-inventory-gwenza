@@ -55,7 +55,7 @@ model Model {
 
 model Product {
   product_id    Int      @id @default(autoincrement()) @db.Int
-  product_code  String   @unique @db.Char(6)
+  product_code  String   @db.Char(6)
   product_name  String   @db.VarChar(100)
   cost_price    Float    @db.Float
   selling_price Float    @db.Float
@@ -71,6 +71,7 @@ model Product {
   transfer      Transfer[]
   inventory     Inventory[]
 
+  @@unique([product_code, product_name])
   @@map("product")
 }
 

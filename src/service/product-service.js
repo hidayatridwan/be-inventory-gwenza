@@ -16,6 +16,16 @@ const create = async (user, req) => {
   product.created_by = user.username;
 
   return prismaClient.$transaction(async (tx) => {
+    const countProduct = await tx.product.count({
+      where: {
+        product_name: product.product_name,
+      },
+    });
+
+    if (countProduct > 0) {
+      throw new ResponseError(404, constants.RECORD_EXISTS);
+    }
+
     const productCode = await generateProductCode(tx);
     product.product_code = productCode;
     product.qr_code = generateQRCode(productCode);
