@@ -71,7 +71,7 @@ model Product {
   transfer      Transfer[]
   inventory     Inventory[]
 
-  @@unique([product_code, product_name])
+  @@unique([product_code])
   @@map("product")
 }
 
