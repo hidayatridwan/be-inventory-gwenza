@@ -9,7 +9,11 @@ export const web = express();
 
 web.use(
   cors({
-    origin: ["http://localhost:5173", process.env.ORIGIN_URL],
+    origin: [
+      "http://localhost:5173",
+      process.env.ORIGIN_URL,
+      "http://157.15.124.191:3001",
+    ],
   })
 );
 
