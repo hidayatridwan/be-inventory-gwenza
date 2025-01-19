@@ -7,9 +7,11 @@ import cors from "cors";
 
 export const web = express();
 
+// Configure CORS to allow all origins
 web.use(
   cors({
-    origin: ["http://localhost:5173", process.env.ORIGIN_URL],
+    origin: "*", // Allow all origins
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Allowed HTTP methods
   })
 );
 
