@@ -243,4 +243,29 @@ const dashboard = async (req) => {
   return result[0];
 };
 
-export default { stockCard, inventoryStock, dashboard };
+const products = async () => {
+  const result = await prismaClient.product.findMany({
+    select: {
+      product_code: true,
+      product_name: true,
+      cost_price: true,
+      selling_price: true,
+      created_by: true,
+      created_at: true,
+      modified_by: true,
+      modified_at: true,
+      tailor: {
+        select: {
+          tailor_name: true,
+        },
+      },
+    },
+  });
+
+  return result.map((product) => ({
+    ...product,
+    tailor: product.tailor.tailor_name,
+  }));
+};
+
+export default { stockCard, inventoryStock, dashboard, products };

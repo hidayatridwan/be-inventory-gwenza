@@ -4,3 +4,4 @@ node_modules
 logs
 prisma/migrations
 public
+package-lock.json
