@@ -3,10 +3,10 @@ import userController from "../controller/user-controller.js";
 
 const publicRouter = express.Router();
 
-publicRouter.get("/api/health-check", (req, res) => {
+publicRouter.get("/health-check", (req, res) => {
   res.status(200).send({ message: "Healthy" });
 });
-publicRouter.post("/api/users", userController.register);
-publicRouter.post("/api/users/login", userController.login);
+publicRouter.post("/users", userController.register);
+publicRouter.post("/users/login", userController.login);
 
 export { publicRouter };
