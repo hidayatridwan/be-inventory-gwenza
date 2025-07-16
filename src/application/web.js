@@ -20,6 +20,6 @@ const __dirname = path.resolve();
 web.use(express.static(path.join(__dirname, "public")));
 
 web.use(express.json());
-web.use(publicRouter);
-web.use(authRouter);
+web.use("/api", publicRouter);
+web.use("/api", authRouter);
 web.use(errorMiddleware);
